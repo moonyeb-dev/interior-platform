@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뻘짓없는 인테리어 — 사기 없이, 공사 끝까지</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* =====================================================
+   토큰 시스템
+   ===================================================== */
+:root{
+  --ground:#1C1A17;
+  --paper:#FAF7F0;
+  --paper-dim:#F0EBE0;
+  --signal:#C1440E;
+  --signal-dim:#E8D9CC;
+  --verify:#2F5D50;
+  --verify-dim:#DCE6E1;
+  --concrete:#8B8378;
+  --line:#DDD5C5;
+  --ink:#2A2722;
+  --ink-soft:#5C564C;
+  --white:#FFFFFF;
+
+  --font-display:'Pretendard','Noto Sans KR',-apple-system,sans-serif;
+  --font-body:'Pretendard','Noto Sans KR',-apple-system,sans-serif;
+  --font-mono:'Roboto Mono',ui-monospace,'SF Mono',monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:var(--font-body);
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px;}
+@media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important;transition-duration:0.01ms !important;}}
+
+.wrapper{max-width:1240px;margin:0 auto;padding:0 20px;}
+
+/* =====================================================
+   헤더 — 접수증/현장 태그 모티프
+   ===================================================== */
+.site-header{
+  background:var(--ground);
+  color:var(--paper);
+  position:relative;
+  overflow:hidden;
+}
+.site-header::before{
+  content:"";
+  position:absolute; inset:0;
+  background-image:
+    repeating-linear-gradient(135deg, rgba(193,68,14,0.07) 0px, rgba(193,68,14,0.07) 2px, transparent 2px, transparent 18px);
+  pointer-events:none;
+}
+.header-inner{
+  position:relative;
+  padding:22px 20px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:14px;}
+.brand-mark{
+  width:46px;height:46px;border-radius:8px;
+  background:var(--signal);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-mono);font-weight:700;font-size:1.1rem;
+  color:var(--paper);
+  transform:rotate(-3deg);
+  flex-shrink:0;
+}
+.brand-text h1{
+  font-family:var(--font-display);
+  font-size:1.5rem;font-weight:800;letter-spacing:-0.5px;
+  line-height:1.2;
+}
+.brand-text p{
+  font-family:var(--font-mono);
+  font-size:0.72rem;
+  color:var(--concrete);
+  letter-spacing:0.5px;
+  margin-top:2px;
+}
+
+.auth-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.btn-kakao,.btn-naver,.btn-logout{
+  border:none;border-radius:7px;font-weight:700;font-size:0.85rem;
+  padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:transform 0.12s ease, filter 0.12s ease;
+  font-family:var(--font-body);
+}
+.btn-kakao{background:#FEE500;color:#3C1E1E;}
+.btn-naver{background:#03C75A;color:#fff;}
+.btn-logout{background:transparent;color:var(--paper);border:1px solid rgba(250,247,240,0.35);}
+.btn-kakao:hover,.btn-naver:hover{filter:brightness(1.06);transform:translateY(-1px);}
+.btn-logout:hover{background:rgba(250,247,240,0.1);}
+.user-chip{
+  font-family:var(--font-mono);font-size:0.78rem;color:var(--paper);
+  background:rgba(250,247,240,0.1);border:1px solid rgba(250,247,240,0.2);
+  padding:7px 12px;border-radius:7px;
+}
+.lawyer-flag{
+  display:inline-block;background:var(--verify);color:#fff;
+  font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:4px;
+  margin-left:6px;letter-spacing:0.3px;vertical-align:middle;
+}
+
+/* 경고 띠 */
+.alert-strip{
+  background:var(--signal);color:var(--paper);
+  font-family:var(--font-mono);font-size:0.78rem;font-weight:600;
+  padding:9px 0; text-align:center; letter-spacing:0.3px;
+}
+
+/* =====================================================
+   레이아웃
+   ===================================================== */
+.page-body{padding:28px 0 60px;}
+.main-layout{display:flex;gap:24px;align-items:flex-start;}
+.content-area{flex:1 1 70%;min-width:0;}
+.sidebar-area{flex:0 0 300px;min-width:0;}
+
+/* =====================================================
+   탭
+   ===================================================== */
+.tab-menu{
+  display:flex;width:100%;gap:6px;margin-bottom:22px;
+  border-bottom:2px solid var(--line);
+}
+.tab-item{
+  flex:1;text-align:center;padding:14px 8px;cursor:pointer;
+  font-weight:700;font-size:0.98rem;color:var(--ink-soft);
+  border-bottom:3px solid transparent;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color 0.15s ease, border-color 0.15s ease;
+  position:relative; top:2px;
+}
+.tab-item.active{color:var(--ink);border-bottom-color:var(--signal);}
+.tab-item:hover:not(.active){color:var(--ink);}
+
+.section-panel{display:none;}
+.section-panel.active{display:block; animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.view-container{
+  background:var(--white);
+  padding:36px;
+  border-radius:4px;
+  border:1px solid var(--line);
+  margin-bottom:24px;
+}
+
+/* =====================================================
+   글 목록 카드 — 접수증 스타일
+   ===================================================== */
+.post-card{
+  background:var(--white);
+  border:1px solid var(--line);
+  border-left:4px solid var(--line);
+  padding:18px 20px;
+  border-radius:4px;
+  margin-bottom:12px;
+  cursor:pointer;
+  transition:border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+.post-card:hover{
+  border-left-color:var(--signal);
+  box-shadow:0 6px 16px rgba(28,26,23,0.07);
+  transform:translateX(2px);
+}
+.tag-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.stamp{
+  display:inline-flex;align-items:center;gap:4px;
+  font-family:var(--font-mono);font-size:0.68rem;font-weight:700;
+  padding:3px 9px;border-radius:3px;letter-spacing:0.4px;
+  text-transform:uppercase;
+}
+.stamp-news{background:var(--signal-dim);color:var(--signal);}
+.stamp-auto{background:var(--paper-dim);color:var(--concrete);}
+.stamp-blog{background:var(--verify-dim);color:var(--verify);}
+.stamp-general{background:var(--paper-dim);color:var(--ink-soft);}
+.stamp-lawyer{background:var(--verify);color:#fff;}
+.stamp-answered{background:var(--verify-dim);color:var(--verify);}
+.stamp-open{background:#FDECEA;color:var(--signal);}
+
+.post-title{font-size:1.1rem;font-weight:700;margin-bottom:6px;color:var(--ink);line-height:1.4;}
+.post-desc{font-size:0.92rem;color:var(--ink-soft);line-height:1.55;}
+.post-meta{
+  font-family:var(--font-mono);font-size:0.74rem;color:var(--concrete);
+  margin-top:10px;letter-spacing:0.2px;
+}
+
+/* =====================================================
+   상세 보기
+   ===================================================== */
+.back-to-list-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--paper-dim);color:var(--ink-soft);
+  padding:8px 14px;border-radius:5px;font-size:0.85rem;font-weight:700;
+  margin-bottom:22px;cursor:pointer;border:none;
+  font-family:var(--font-body);
+}
+.back-to-list-btn:hover{background:var(--line);}
+.article-header{border-bottom:2px solid var(--line);padding-bottom:16px;margin-bottom:22px;}
+.article-title{font-size:1.55rem;font-weight:800;color:var(--ink);margin-bottom:10px;line-height:1.4;letter-spacing:-0.3px;}
+.article-body h2{font-size:1.2rem;color:var(--ground);font-weight:700;margin:26px 0 12px;border-left:4px solid var(--signal);padding-left:11px;}
+.article-body p{margin-bottom:15px;color:var(--ink);}
+.article-body a{color:var(--verify);font-weight:700;}
+
+/* =====================================================
+   댓글 / 변호사 답변
+   ===================================================== */
+.comment-section{margin-top:42px;border-top:2px solid var(--line);padding-top:26px;}
+.comment-section h3{font-size:1.05rem;font-weight:800;margin-bottom:16px;color:var(--ink);}
+
+.lawyer-answer-card{
+  background:var(--verify-dim);
+  border:1px solid var(--verify);
+  border-radius:6px;
+  padding:18px 20px;
+  margin-bottom:14px;
+}
+.lawyer-answer-card .answer-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--verify);color:#fff;font-size:0.72rem;font-weight:800;
+  padding:3px 9px;border-radius:4px;margin-bottom:10px;
+  font-family:var(--font-mono);letter-spacing:0.3px;
+}
+.lawyer-answer-card .answer-text{font-size:0.96rem;color:var(--ink);line-height:1.65;}
+.lawyer-answer-card .answer-meta{font-family:var(--font-mono);font-size:0.72rem;color:var(--ink-soft);margin-top:10px;}
+
+.comment-card{
+  background:var(--paper-dim);
+  padding:14px 16px;border-radius:6px;margin-bottom:10px;
+  border:1px solid var(--line);
+}
+.comment-card .comment-author{font-weight:700;font-size:0.88rem;color:var(--ink);margin-bottom:4px;}
+.comment-card .comment-text{font-size:0.94rem;color:var(--ink);}
+.comment-card .comment-meta{font-family:var(--font-mono);font-size:0.7rem;color:var(--concrete);margin-top:7px;display:flex;justify-content:space-between;align-items:center;}
+.comment-delete-btn{background:none;border:none;color:var(--signal);font-size:0.76rem;cursor:pointer;padding:0;font-weight:700;}
+.comment-delete-btn:hover{text-decoration:underline;}
+
+.comment-input-area{margin-top:18px;}
+.comment-input-area textarea{
+  width:100%;padding:13px;border:1px solid var(--line);border-radius:6px;
+  font-size:0.94rem;resize:vertical;min-height:78px;font-family:var(--font-body);
+  background:var(--white);
+}
+.comment-input-area textarea:focus{outline:none;border-color:var(--signal);box-shadow:0 0 0 3px rgba(193,68,14,0.1);}
+.comment-submit-btn{
+  margin-top:10px;background:var(--ground);color:var(--paper);border:none;
+  padding:10px 22px;border-radius:6px;font-weight:700;font-size:0.92rem;cursor:pointer;
+  font-family:var(--font-body);
+}
+.comment-submit-btn:hover{background:#34302A;}
+.comment-login-notice{
+  background:#FFF6E8;border:1px solid #F0D9A8;border-radius:6px;
+  padding:14px 18px;font-size:0.92rem;color:#7A5A1A;margin-top:18px;
+}
+
+/* =====================================================
+   글쓰기 모달 / 카테고리 선택
+   ===================================================== */
+.write-btn{
+  background:var(--signal);color:#fff;padding:13px;text-align:center;
+  border-radius:6px;font-weight:800;margin-bottom:18px;cursor:pointer;border:none;
+  width:100%;font-size:0.96rem;font-family:var(--font-body);
+  transition:filter 0.12s ease;
+}
+.write-btn:hover{filter:brightness(1.08);}
+
+.category-select-row{display:flex;gap:10px;margin-bottom:18px;}
+.category-pill{
+  flex:1;border:2px solid var(--line);border-radius:6px;padding:14px 12px;
+  text-align:center;cursor:pointer;font-weight:700;font-size:0.88rem;
+  color:var(--ink-soft);transition:border-color 0.12s ease,background 0.12s ease;
+  font-family:var(--font-body);
+}
+.category-pill.selected.cat-general{border-color:var(--concrete);background:var(--paper-dim);color:var(--ink);}
+.category-pill.selected.cat-lawyer{border-color:var(--verify);background:var(--verify-dim);color:var(--verify);}
+
+.write-form-box{background:var(--paper-dim);border:1px solid var(--line);border-radius:6px;padding:20px;margin-bottom:20px;}
+.write-form-box input,.write-form-box textarea{
+  width:100%;padding:11px;border:1px solid var(--line);border-radius:5px;
+  font-size:0.92rem;font-family:var(--font-body);margin-bottom:12px;background:var(--white);
+}
+.write-form-box input:focus,.write-form-box textarea:focus{outline:none;border-color:var(--signal);}
+.write-form-actions{display:flex;gap:10px;}
+.write-form-actions button{
+  border:none;border-radius:5px;padding:11px 20px;font-weight:700;font-size:0.9rem;cursor:pointer;
+  font-family:var(--font-body);
+}
+.btn-submit-post{background:var(--ground);color:var(--paper);flex:1;}
+.btn-cancel-post{background:var(--white);color:var(--ink-soft);border:1px solid var(--line) !important;}
+
+/* =====================================================
+   사이드바
+   ===================================================== */
+.sidebar-box{background:var(--white);border:1px solid var(--line);padding:22px;border-radius:6px;margin-bottom:20px;}
+.sidebar-box h3{font-size:1rem;margin-bottom:6px;font-weight:800;color:var(--ink);}
+.sidebar-box .sidebar-sub{font-size:0.82rem;color:var(--ink-soft);margin-bottom:16px;line-height:1.5;}
+
+.vendor-banner{
+  display:block;
+  background:linear-gradient(135deg, var(--verify) 0%, #244A3F 100%);
+  color:#fff;border-radius:6px;padding:22px 20px;margin-bottom:20px;
+  text-decoration:none;cursor:pointer;position:relative;overflow:hidden;
+}
+.vendor-banner::after{
+  content:"검증";position:absolute;right:-18px;top:14px;
+  background:rgba(255,255,255,0.15);padding:4px 26px;font-size:0.7rem;font-weight:800;
+  transform:rotate(35deg);font-family:var(--font-mono);letter-spacing:1px;
+}
+.vendor-banner .vb-eyebrow{font-family:var(--font-mono);font-size:0.7rem;opacity:0.8;letter-spacing:0.5px;margin-bottom:8px;}
+.vendor-banner .vb-title{font-size:1.15rem;font-weight:800;margin-bottom:6px;line-height:1.35;}
+.vendor-banner .vb-desc{font-size:0.85rem;opacity:0.9;line-height:1.5;}
+.vendor-banner .vb-cta{
+  display:inline-flex;align-items:center;gap:5px;margin-top:14px;
+  font-size:0.85rem;font-weight:700;background:rgba(255,255,255,0.15);
+  padding:7px 14px;border-radius:5px;
+}
+
+.ads-box-sidebar{
+  background:var(--paper-dim);border:1px dashed var(--line);border-radius:6px;
+  margin-bottom:20px;font-weight:700;font-size:0.84rem;color:var(--concrete);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:240px;
+}
+.ads-box-sidebar span{font-family:var(--font-mono);font-size:0.68rem;color:var(--concrete);margin-bottom:6px;letter-spacing:1px;}
+
+.ads-box{
+  background:var(--paper-dim);border:1px dashed var(--line);text-align:center;padding:16px;
+  color:var(--concrete);font-size:0.84rem;border-radius:6px;margin-bottom:24px;font-weight:700;
+}
+.ads-box span{display:block;font-family:var(--font-mono);font-size:0.68rem;color:var(--concrete);margin-bottom:6px;letter-spacing:1px;}
+
+.loading-spinner{text-align:center;padding:20px;color:var(--concrete);font-size:0.88rem;font-family:var(--font-mono);}
+
+/* =====================================================
+   모바일
+   ===================================================== */
+@media (max-width:768px){
+  .header-inner{padding:18px 16px 14px;}
+  .brand-text h1{font-size:1.2rem;}
+  .auth-bar{width:100%;justify-content:flex-end;}
+  .main-layout{flex-direction:column;}
+  .content-area,.sidebar-area{flex:0 0 100%;width:100%;}
+  .tab-item{font-size:0.84rem;padding:12px 4px;}
+  .article-title{font-size:1.3rem;}
+  .view-container{padding:22px;}
+  .btn-kakao,.btn-naver{font-size:0.78rem;padding:7px 11px;}
+  .category-select-row{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <div class="wrapper header-inner">
+    <div class="brand">
+      <div class="brand-mark">뻘</div>
+      <div class="brand-text">
+        <h1>뻘짓없는 인테리어</h1>
+        <p>SITE LOG · NO MORE SCAM RENOVATION</p>
+      </div>
+    </div>
+    <div class="auth-bar" id="auth-bar">
+      <span class="user-chip" id="user-greeting" style="display:none;"></span>
+      <button class="btn-logout" id="btn-logout" style="display:none;" onclick="logout()">로그아웃</button>
+      <button class="btn-kakao" id="btn-kakao" onclick="loginWith('kakao')">💬 카카오 로그인</button>
+      <button class="btn-naver" id="btn-naver" onclick="loginWith('naver')">N 네이버 로그인</button>
+    </div>
+  </div>
+</div>
+<div class="alert-strip">⚠ 무자격 시공업체로 인한 피해, 혼자 해결하지 마세요 — 사례 공유와 변호사 답변을 동시에 받을 수 있습니다</div>
+
+<div class="wrapper page-body">
+  <div class="main-layout">
+
+    <div class="content-area">
+      <div class="tab-menu" role="tablist">
+        <div id="tab-news" class="tab-item active" role="tab" aria-selected="true" onclick="clickTab('news')">📰 실시간 뉴스</div>
+        <div id="tab-blog" class="tab-item" role="tab" aria-selected="false" onclick="clickTab('blog')">📋 전문가 가이드</div>
+        <div id="tab-comm" class="tab-item" role="tab" aria-selected="false" onclick="clickTab('comm')">🆘 피해 대피소</div>
+      </div>
+
+      <!-- 뉴스 -->
+      <div id="panel-news" class="section-panel active" role="tabpanel">
+        <div id="news-list">
+          <div class="post-card" onclick="openDetail('news','news-1')">
+            <div class="tag-row"><span class="stamp stamp-news">이슈브리핑</span></div>
+            <div class="post-title">[이슈 브리핑] 국토부, 무면허 인테리어 업체 다음 달부터 대대적 전수조사</div>
+            <p class="post-desc">최근 무면허 기획 사기 피해가 급증함에 따라 정부가 합동 단속을 선언했습니다.</p>
+            <div class="post-meta">운영자 사장 · 방금 전 · 조회수 128</div>
+          </div>
+          <div class="post-card" onclick="openDetail('news','news-2')">
+            <div class="tag-row"><span class="stamp stamp-auto">자동 수집</span></div>
+            <div class="post-title">"공사 대금 받고 사장 잠적"… 소송 준비하는 입주민들 분통</div>
+            <p class="post-desc">수도권 일대 아파트를 돌며 저렴한 견적을 제시한 뒤 중도금까지 가로채 연락을 끊은 전형적인 먹튀 사건 발생.</p>
+            <div class="post-meta">출처: 네트워크 연합 · 오늘 오전 08:02</div>
+          </div>
+        </div>
+        <div id="news-detail" class="view-container" style="display:none;" role="article"></div>
+      </div>
+
+      <!-- 블로그 -->
+      <div id="panel-blog" class="section-panel" role="tabpanel">
+        <div id="blog-list">
+          <div class="post-card" onclick="openDetail('blog','blog-1')">
+            <div class="tag-row"><span class="stamp stamp-blog">필독 가이드</span></div>
+            <div class="post-title">인테리어 계약서 작성법, 이 독소조항 없으면 당합니다</div>
+            <p class="post-desc">공정거래위원회 표준계약서 양식 분석 및 지체상금 조항, 잔금 지급 비율 안전하게 쪼개는 실전 꿀팁 총정리.</p>
+            <div class="post-meta">운영자 사장 · 3일 전 · 조회수 5,600</div>
+          </div>
+        </div>
+        <div id="blog-detail" class="view-container" style="display:none;" role="article"></div>
+      </div>
+
+      <!-- 피해대피소 -->
+      <div id="panel-comm" class="section-panel" role="tabpanel">
+        <button class="write-btn" onclick="openWriteForm()">✏️ 글쓰기 (하소연 또는 변호사 답변 요청)</button>
+
+        <div id="write-form-wrap"></div>
+
+        <div id="comm-list">
+          <div class="loading-spinner">게시글을 불러오는 중...</div>
+        </div>
+        <div id="comm-detail" class="view-container" style="display:none;" role="article"></div>
+      </div>
+
+      <div class="ads-box" style="margin-top:10px;"><span>ADVERTISEMENT</span>구글 애드센스 본문 하단 광고 영역</div>
+    </div>
+
+    <!-- 사이드바 -->
+    <div class="sidebar-area">
+      <div class="vendor-banner" onclick="alert('검증업체 디렉토리는 준비 중입니다.\n사업자등록증·건설업면허(키스콘)·보험가입 여부를 서류 확인한 업체만 등록됩니다.')">
+        <div class="vb-eyebrow">VERIFIED VENDOR</div>
+        <div class="vb-title">검증업체 보기</div>
+        <div class="vb-desc">사업자·면허·보험을 서류 확인한 업체만 광고로 등록됩니다. 견적은 업체가 직접 제공합니다.</div>
+        <div class="vb-cta">업체 둘러보기 →</div>
+      </div>
+
+      <div class="ads-box-sidebar"><span>ADVERTISEMENT</span>사이드바 배너 광고</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// =============================================
+// Supabase 초기화
+// =============================================
+const SUPABASE_URL = 'https://yksyvnuwpdhcxrbzpqxk.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlrc3l2bnV3cGRoY3hyYnpwcXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTczMDMsImV4cCI6MjA5NzE3MzMwM30.3tqnn6tzofsJKBxvqx1Ry_I6lhOtsV9zqDpeIDCnolw';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+let currentProfile = null; // { nickname, role }
+
+// =============================================
+// 인증 상태 감지
+// =============================================
+sb.auth.onAuthStateChange(async (event, session) => {
+  currentUser = session?.user ?? null;
+  if (currentUser) {
+    await loadProfile();
+  } else {
+    currentProfile = null;
+  }
+  updateAuthUI();
+  // 커뮤니티 탭이 열려있다면 목록 갱신 (로그인 상태에 따라 버튼 노출 달라짐)
+  if (document.getElementById('panel-comm')?.classList.contains('active')) {
+    loadCommunityList();
+  }
+});
+
+async function loadProfile() {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('nickname, role')
+    .eq('id', currentUser.id)
+    .single();
+  if (!error && data) {
+    currentProfile = data;
+  } else {
+    currentProfile = { nickname: getDisplayName(), role: 'member' };
+  }
+}
+
+function getDisplayName() {
+  if (!currentUser) return '회원';
+  return currentUser.user_metadata?.name
+    || currentUser.user_metadata?.full_name
+    || currentUser.user_metadata?.nickname
+    || currentUser.email?.split('@')[0]
+    || '회원';
+}
+
+function isLawyer() {
+  return currentProfile?.role === 'lawyer';
+}
+
+function updateAuthUI() {
+  const greeting = document.getElementById('user-greeting');
+  const btnLogout = document.getElementById('btn-logout');
+  const btnKakao = document.getElementById('btn-kakao');
+  const btnNaver = document.getElementById('btn-naver');
+
+  if (currentUser) {
+    const nickname = currentProfile?.nickname || getDisplayName();
+    greeting.innerHTML = `👋 ${escapeHtml(nickname)}님` + (isLawyer() ? '<span class="lawyer-flag">변호사</span>' : '');
+    greeting.style.display = 'inline';
+    btnLogout.style.display = 'inline-block';
+    btnKakao.style.display = 'none';
+    btnNaver.style.display = 'none';
+  } else {
+    greeting.style.display = 'none';
+    btnLogout.style.display = 'none';
+    btnKakao.style.display = 'inline-flex';
+    btnNaver.style.display = 'inline-flex';
+  }
+}
+
+async function loginWith(provider) {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: provider === 'naver' ? 'custom:naver' : 'kakao',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) alert('로그인 중 오류가 발생했습니다: ' + error.message);
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  alert('로그아웃 되었습니다.');
+}
+
+// =============================================
+// 정적 게시글 DB (뉴스/블로그)
+// =============================================
+const db = {
+  'news-1': {
+    title: "[이슈 브리핑] 국토부, 무면허 인테리어 업체 다음 달부터 대대적 전수조사",
+    meta: "작성자: 운영자 사장 | 등록일: 방금 전",
+    body: "<h2>정부, 불법 무면허 시공 근절 선언</h2><p>국토교통부가 다음 달부터 대대적인 무면허 인테리어 특별 단속에 돌입한다고 밝혔습니다. 현행법상 1,500만 원 이상의 실내건축공사는 반드시 면허를 보유한 정식 등록업체가 시공해야 합니다.</p><h2>소비자 주의사항</h2><p>공사 계약 전 반드시 '키스콘(KISCON)' 종합건설업 정보조회 시스템을 통해 면허 보유 여부를 조회하세요.</p>"
+  },
+  'news-2': {
+    title: "\"공사 대금 받고 사장 잠적\"… 소송 준비하는 입주민들 분통",
+    meta: "출처: 네트워크 연합 | 등록일: 오늘 오전 08:02 (자동 수집)",
+    body: "<p>수도권 일대 아파트를 돌며 시세보다 저렴한 단가를 제시한 뒤 중도금까지 가로채 연락을 끊은 인테리어 업자에 대해 경찰이 수사에 착수했습니다.</p><p><a href='https://news.naver.com' target='_blank' rel='noopener noreferrer'>[언론사 기사 원문 보러가기 →]</a></p>"
+  },
+  'blog-1': {
+    title: "인테리어 계약서 작성법, 이 독소조항 없으면 당합니다",
+    meta: "작성자: 운영자 사장 | 등록일: 3일 전",
+    body: "<h2>1. 공정위 표준계약서 필수 사용</h2><p>동네 인테리어 업체가 임의로 만든 양식은 대부분 업체에게 유리하게 되어 있습니다. 공정거래위원회 표준 계약서를 기준으로 삼으세요.</p><h2>2. 지체상금 조항 명시</h2><p>완공 예정일을 넘길 경우 시공사가 하루당 총 공사 대금의 0.1%를 보상하도록 명시해야 합니다.</p>"
+  }
+};
+
+// =============================================
+// 탭 전환
+// =============================================
+const TAB_TYPES = ['news', 'blog', 'comm'];
+
+function clickTab(type) {
+  TAB_TYPES.forEach(t => {
+    document.getElementById('tab-' + t)?.classList.remove('active');
+    document.getElementById('tab-' + t)?.setAttribute('aria-selected', 'false');
+    document.getElementById('panel-' + t)?.classList.remove('active');
+    const detail = document.getElementById(t + '-detail');
+    const list = document.getElementById(t + '-list');
+    if (detail) detail.style.display = 'none';
+    if (list) list.style.display = 'block';
+  });
+  document.getElementById('tab-' + type)?.classList.add('active');
+  document.getElementById('tab-' + type)?.setAttribute('aria-selected', 'true');
+  document.getElementById('panel-' + type)?.classList.add('active');
+
+  if (type === 'comm') loadCommunityList();
+}
+
+// =============================================
+// 정적 글(뉴스/블로그) 상세 보기
+// =============================================
+function openDetail(type, postId) {
+  const data = db[postId];
+  if (!data) return;
+
+  const detailContainer = document.getElementById(type + '-detail');
+  const listContainer = document.getElementById(type + '-list');
+  detailContainer.innerHTML = '';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'back-to-list-btn';
+  backBtn.textContent = '← 목록으로';
+  backBtn.onclick = () => closeDetail(type);
+
+  const articleHeader = document.createElement('div');
+  articleHeader.className = 'article-header';
+  const articleTitle = document.createElement('h1');
+  articleTitle.className = 'article-title';
+  articleTitle.textContent = data.title;
+  const articleMeta = document.createElement('div');
+  articleMeta.className = 'post-meta';
+  articleMeta.textContent = data.meta;
+  articleHeader.appendChild(articleTitle);
+  articleHeader.appendChild(articleMeta);
+
+  const adBox = document.createElement('div');
+  adBox.className = 'ads-box';
+  adBox.style.margin = '15px 0';
+  adBox.innerHTML = '<span>ADVERTISEMENT</span>구글 애드센스 본문 중간 광고';
+
+  const articleBody = document.createElement('div');
+  articleBody.className = 'article-body';
+  articleBody.innerHTML = data.body;
+
+  const commentSection = document.createElement('div');
+  commentSection.className = 'comment-section';
+  commentSection.id = 'response-section-' + postId;
+
+  detailContainer.appendChild(backBtn);
+  detailContainer.appendChild(articleHeader);
+  detailContainer.appendChild(adBox);
+  detailContainer.appendChild(articleBody);
+  detailContainer.appendChild(commentSection);
+
+  listContainer.style.display = 'none';
+  detailContainer.style.display = 'block';
+  detailContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  loadComments(postId, commentSection);
+}
+
+function closeDetail(type) {
+  const detail = document.getElementById(type + '-detail');
+  const list = document.getElementById(type + '-list');
+  if (detail) detail.style.display = 'none';
+  if (list) list.style.display = 'block';
+  if (type === 'comm') loadCommunityList();
+}
+
+// =============================================
+// 피해대피소 — 글쓰기 폼
+// =============================================
+let selectedCategory = null;
+
+function openWriteForm() {
+  if (!currentUser) {
+    alert('글쓰기는 카카오 또는 네이버 로그인이 필요합니다.');
+    return;
+  }
+  selectedCategory = null;
+  const wrap = document.getElementById('write-form-wrap');
+  wrap.innerHTML = `
+    <div class="write-form-box">
+      <div style="font-weight:800;font-size:0.9rem;margin-bottom:10px;">카테고리 선택</div>
+      <div class="category-select-row">
+        <div class="category-pill cat-general" id="pill-general" onclick="selectCategory('general')">🆘 하소연 / 제보</div>
+        <div class="category-pill cat-lawyer" id="pill-lawyer" onclick="selectCategory('lawyer_request')">⚖️ 변호사 답변 요청</div>
+      </div>
+      <input type="text" id="new-post-title" placeholder="제목을 입력하세요" maxlength="100">
+      <textarea id="new-post-content" rows="5" placeholder="상황을 자세히 적어주세요. (변호사 답변 요청 시, 사실관계를 구체적으로 적을수록 정확한 답변을 받을 수 있습니다)"></textarea>
+      <div class="write-form-actions">
+        <button class="btn-submit-post" onclick="submitPost()">등록하기</button>
+        <button class="btn-cancel-post" onclick="closeWriteForm()">취소</button>
+      </div>
+    </div>
+  `;
+}
+
+function selectCategory(cat) {
+  selectedCategory = cat;
+  document.getElementById('pill-general').classList.toggle('selected', cat === 'general');
+  document.getElementById('pill-lawyer').classList.toggle('selected', cat === 'lawyer_request');
+}
+
+function closeWriteForm() {
+  document.getElementById('write-form-wrap').innerHTML = '';
+}
+
+async function submitPost() {
+  if (!currentUser) { alert('로그인이 필요합니다.'); return; }
+  if (!selectedCategory) { alert('카테고리를 선택해주세요.'); return; }
+  const title = document.getElementById('new-post-title').value.trim();
+  const content = document.getElementById('new-post-content').value.trim();
+  if (!title || !content) { alert('제목과 내용을 모두 입력해주세요.'); return; }
+
+  const { error } = await sb.from('community_posts').insert({
+    user_id: currentUser.id,
+    nickname: currentProfile?.nickname || getDisplayName(),
+    category: selectedCategory,
+    title,
+    content
+  });
+
+  if (error) { alert('게시글 등록에 실패했습니다.'); return; }
+
+  closeWriteForm();
+  loadCommunityList();
+}
+
+// =============================================
+// 피해대피소 — 목록 로드
+// =============================================
+async function loadCommunityList() {
+  const listContainer = document.getElementById('comm-list');
+  listContainer.innerHTML = '<div class="loading-spinner">게시글을 불러오는 중...</div>';
+
+  const { data: posts, error } = await sb
+    .from('community_posts')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    listContainer.innerHTML = '<p style="color:var(--signal);font-size:0.9rem;">게시글을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  if (!posts || posts.length === 0) {
+    listContainer.innerHTML = '<p style="color:var(--concrete);font-size:0.9rem;padding:20px 0;">아직 등록된 글이 없습니다. 첫 글을 남겨보세요.</p>';
+    return;
+  }
+
+  listContainer.innerHTML = '';
+  posts.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+    card.onclick = () => openCommunityDetail(p.id);
+
+    const isLawyerReq = p.category === 'lawyer_request';
+    const catStamp = isLawyerReq
+      ? '<span class="stamp stamp-lawyer">⚖️ 변호사 답변 요청</span>'
+      : '<span class="stamp stamp-general">🆘 하소연/제보</span>';
+    const statusStamp = isLawyerReq
+      ? (p.status === 'answered' ? '<span class="stamp stamp-answered">답변 완료</span>' : '<span class="stamp stamp-open">답변 대기</span>')
+      : '';
+
+    const date = new Date(p.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+
+    card.innerHTML = `
+      <div class="tag-row">${catStamp}${statusStamp}</div>
+      <div class="post-title">${escapeHtml(p.title)}</div>
+      <p class="post-desc">${escapeHtml(truncate(p.content, 80))}</p>
+      <div class="post-meta">${escapeHtml(p.nickname || '익명')} · ${date}</div>
+    `;
+    listContainer.appendChild(card);
+  });
+}
+
+function truncate(str, n) {
+  return str.length > n ? str.slice(0, n) + '...' : str;
+}
+
+// =============================================
+// 피해대피소 — 상세 보기 (댓글 또는 변호사 답변)
+// =============================================
+async function openCommunityDetail(postId) {
+  const { data: post, error } = await sb
+    .from('community_posts')
+    .select('*')
+    .eq('id', postId)
+    .single();
+
+  if (error || !post) { alert('게시글을 불러오지 못했습니다.'); return; }
+
+  const detailContainer = document.getElementById('comm-detail');
+  const listContainer = document.getElementById('comm-list');
+  detailContainer.innerHTML = '';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'back-to-list-btn';
+  backBtn.textContent = '← 목록으로';
+  backBtn.onclick = () => closeDetail('comm');
+
+  const isLawyerReq = post.category === 'lawyer_request';
+  const catStamp = isLawyerReq
+    ? '<span class="stamp stamp-lawyer">⚖️ 변호사 답변 요청</span>'
+    : '<span class="stamp stamp-general">🆘 하소연/제보</span>';
+
+  const articleHeader = document.createElement('div');
+  articleHeader.className = 'article-header';
+  const tagRow = document.createElement('div');
+  tagRow.className = 'tag-row';
+  tagRow.innerHTML = catStamp;
+  const articleTitle = document.createElement('h1');
+  articleTitle.className = 'article-title';
+  articleTitle.textContent = post.title;
+  const articleMeta = document.createElement('div');
+  articleMeta.className = 'post-meta';
+  const date = new Date(post.created_at).toLocaleString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  articleMeta.textContent = `${post.nickname || '익명'} · ${date}`;
+  articleHeader.appendChild(tagRow);
+  articleHeader.appendChild(articleTitle);
+  articleHeader.appendChild(articleMeta);
+
+  const articleBody = document.createElement('div');
+  articleBody.className = 'article-body';
+  const bodyP = document.createElement('p');
+  bodyP.style.whiteSpace = 'pre-wrap';
+  bodyP.textContent = post.content;
+  articleBody.appendChild(bodyP);
+
+  const responseSection = document.createElement('div');
+  responseSection.className = 'comment-section';
+  responseSection.id = 'response-section-' + postId;
+
+  detailContainer.appendChild(backBtn);
+  detailContainer.appendChild(articleHeader);
+  detailContainer.appendChild(articleBody);
+  detailContainer.appendChild(responseSection);
+
+  listContainer.style.display = 'none';
+  detailContainer.style.display = 'block';
+  detailContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (isLawyerReq) {
+    loadLawyerAnswers(postId, responseSection);
+  } else {
+    loadComments(postId, responseSection, 'community_posts');
+  }
+}
+
+// =============================================
+// 변호사 답변 로드/등록
+// =============================================
+async function loadLawyerAnswers(postId, container) {
+  container.innerHTML = '<h3>⚖️ 변호사 답변</h3><div class="loading-spinner">불러오는 중...</div>';
+
+  const { data: answers, error } = await sb
+    .from('lawyer_answers')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  container.innerHTML = '<h3>⚖️ 변호사 답변</h3>';
+
+  if (error) {
+    container.innerHTML += '<p style="color:var(--signal);font-size:0.9rem;">답변을 불러오지 못했습니다.</p>';
+  } else if (!answers || answers.length === 0) {
+    container.innerHTML += '<p style="color:var(--concrete);font-size:0.9rem;">아직 답변이 등록되지 않았습니다. 협력 변호사가 검토 후 답변을 드립니다.</p>';
+  } else {
+    answers.forEach(a => {
+      const card = document.createElement('div');
+      card.className = 'lawyer-answer-card';
+      const date = new Date(a.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      card.innerHTML = `
+        <div class="answer-badge">⚖️ 변호사 답변</div>
+        <div class="answer-text" style="white-space:pre-wrap;">${escapeHtml(a.content)}</div>
+        <div class="answer-meta">${escapeHtml(a.lawyer_nickname || '협력 변호사')} · ${date}
+          ${currentUser && currentUser.id === a.lawyer_id ? ` · <button class="comment-delete-btn" onclick="deleteLawyerAnswer('${a.id}','${postId}')">삭제</button>` : ''}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  // 답변 입력창 (변호사만)
+  const inputArea = document.createElement('div');
+  inputArea.className = 'comment-input-area';
+
+  if (currentUser && isLawyer()) {
+    inputArea.innerHTML = `
+      <textarea id="lawyer-answer-input-${postId}" placeholder="변호사 답변을 입력하세요. (일반적 법률 정보 제공 목적이며, 구체적 사건 수임은 별도 상담을 통해 진행됩니다)"></textarea>
+      <button class="comment-submit-btn" onclick="submitLawyerAnswer('${postId}')">답변 등록</button>
+    `;
+  } else if (currentUser) {
+    inputArea.innerHTML = `<div class="comment-login-notice">💡 이 게시판은 권한이 부여된 협력 변호사만 답변을 작성할 수 있습니다. 일반 회원은 답변 작성이 제한됩니다.</div>`;
+  } else {
+    inputArea.innerHTML = `<div class="comment-login-notice">💡 로그인 후 변호사 답변을 확인할 수 있습니다.</div>`;
+  }
+  container.appendChild(inputArea);
+}
+
+async function submitLawyerAnswer(postId) {
+  if (!currentUser || !isLawyer()) { alert('변호사 권한이 필요합니다.'); return; }
+  const textarea = document.getElementById('lawyer-answer-input-' + postId);
+  const content = textarea?.value.trim();
+  if (!content) { alert('답변 내용을 입력해주세요.'); return; }
+
+  const { error } = await sb.from('lawyer_answers').insert({
+    post_id: postId,
+    lawyer_id: currentUser.id,
+    lawyer_nickname: currentProfile?.nickname || getDisplayName(),
+    content
+  });
+
+  if (error) { alert('답변 등록에 실패했습니다: ' + error.message); return; }
+
+  await sb.from('community_posts').update({ status: 'answered' }).eq('id', postId);
+
+  const container = document.getElementById('response-section-' + postId);
+  if (container) loadLawyerAnswers(postId, container);
+}
+
+async function deleteLawyerAnswer(answerId, postId) {
+  if (!confirm('답변을 삭제하시겠습니까?')) return;
+  const { error } = await sb.from('lawyer_answers').delete().eq('id', answerId);
+  if (error) { alert('삭제에 실패했습니다.'); return; }
+  const container = document.getElementById('response-section-' + postId);
+  if (container) loadLawyerAnswers(postId, container);
+}
+
+// =============================================
+// 일반 댓글 로드/등록 (뉴스/블로그/하소연 공용)
+// post_id는 community_posts의 경우 uuid, 정적 글의 경우 string id
+// =============================================
+async function loadComments(postId, container) {
+  container.innerHTML = '<h3>💬 댓글</h3><div class="loading-spinner">댓글을 불러오는 중...</div>';
+
+  const { data: comments, error } = await sb
+    .from('comments')
+    .select('*')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true });
+
+  container.innerHTML = '<h3>💬 댓글</h3>';
+
+  if (error) {
+    container.innerHTML += '<p style="color:var(--signal);font-size:0.9rem;">댓글을 불러오지 못했습니다.</p>';
+    return;
+  }
+
+  if (!comments || comments.length === 0) {
+    container.innerHTML += '<p style="color:var(--concrete);font-size:0.9rem;">첫 번째 댓글을 남겨보세요!</p>';
+  } else {
+    comments.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'comment-card';
+      const date = new Date(c.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      card.innerHTML = `
+        <div class="comment-author">${escapeHtml(c.nickname || '익명')}</div>
+        <div class="comment-text">${escapeHtml(c.content)}</div>
+        <div class="comment-meta">
+          <span>${date}</span>
+          ${currentUser && currentUser.id === c.user_id ? `<button class="comment-delete-btn" onclick="deleteComment('${c.id}','${postId}')">삭제</button>` : ''}
+        </div>`;
+      container.appendChild(card);
+    });
+  }
+
+  const inputArea = document.createElement('div');
+  inputArea.className = 'comment-input-area';
+
+  if (currentUser) {
+    const nickname = currentProfile?.nickname || getDisplayName();
+    inputArea.innerHTML = `
+      <textarea id="comment-input-${postId}" placeholder="${escapeHtml(nickname)}님, 댓글을 남겨주세요..."></textarea>
+      <button class="comment-submit-btn" onclick="submitComment('${postId}')">댓글 등록</button>`;
+  } else {
+    inputArea.innerHTML = `<div class="comment-login-notice">💡 댓글을 작성하려면 <strong>카카오 또는 네이버 로그인</strong>이 필요합니다.</div>`;
+  }
+  container.appendChild(inputArea);
+}
+
+async function submitComment(postId) {
+  if (!currentUser) { alert('로그인이 필요합니다.'); return; }
+  const textarea = document.getElementById('comment-input-' + postId);
+  const content = textarea?.value.trim();
+  if (!content) { alert('댓글 내용을 입력해주세요.'); return; }
+
+  const nickname = currentProfile?.nickname || getDisplayName();
+
+  const { error } = await sb.from('comments').insert({
+    post_id: postId,
+    user_id: currentUser.id,
+    nickname,
+    content
+  });
+
+  if (error) { alert('댓글 등록에 실패했습니다.'); return; }
+
+  textarea.value = '';
+  const container = document.getElementById('response-section-' + postId);
+  if (container) loadComments(postId, container);
+}
+
+async function deleteComment(commentId, postId) {
+  if (!confirm('댓글을 삭제하시겠습니까?')) return;
+  const { error } = await sb.from('comments').delete().eq('id', commentId);
+  if (error) { alert('삭제에 실패했습니다.'); return; }
+  const container = document.getElementById('response-section-' + postId);
+  if (container) loadComments(postId, container);
+}
+
+// =============================================
+// XSS 방지 유틸
+// =============================================
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
